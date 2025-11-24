@@ -16,42 +16,72 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   useEffect(() => {
     // Check current session
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Fetch user role
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        setUserRole(profile?.role ?? null);
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setLoading(false);
+          return;
+        }
+
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user role with error handling
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profileError) {
+            console.error("Profile fetch error:", profileError);
+            // Fallback to user_metadata role if profile fetch fails
+            const metadataRole = session.user.user_metadata?.role;
+            setUserRole(metadataRole ?? "employee");
+          } else {
+            setUserRole(profile?.role ?? "employee");
+          }
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+      try {
+        setUser(session?.user ?? null);
         
-        setUserRole(profile?.role ?? null);
-      } else {
-        setUserRole(null);
+        if (session?.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profileError) {
+            console.error("Profile fetch error on auth change:", profileError);
+            const metadataRole = session.user.user_metadata?.role;
+            setUserRole(metadataRole ?? "employee");
+          } else {
+            setUserRole(profile?.role ?? "employee");
+          }
+        } else {
+          setUserRole(null);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Auth state change error:", error);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
