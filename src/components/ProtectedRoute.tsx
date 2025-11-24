@@ -55,31 +55,34 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      try {
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profileError) {
-            console.error("Profile fetch error on auth change:", profileError);
-            const metadataRole = session.user.user_metadata?.role;
-            setUserRole(metadataRole ?? "employee");
-          } else {
-            setUserRole(profile?.role ?? "employee");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Defer profile fetch to avoid deadlock
+        setTimeout(async () => {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error("Profile fetch error on auth change:", profileError);
+              const metadataRole = session.user.user_metadata?.role;
+              setUserRole(metadataRole ?? "employee");
+            } else {
+              setUserRole(profile?.role ?? "employee");
+            }
+            setLoading(false);
+          } catch (error) {
+            console.error("Auth state change error:", error);
+            setLoading(false);
           }
-        } else {
-          setUserRole(null);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Auth state change error:", error);
+        }, 0);
+      } else {
+        setUserRole(null);
         setLoading(false);
       }
     });
