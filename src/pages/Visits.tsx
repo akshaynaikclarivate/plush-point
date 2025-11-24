@@ -30,6 +30,8 @@ const Visits = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [serviceEmployees, setServiceEmployees] = useState<Record<string, string>>({});
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +75,25 @@ const Visits = () => {
       ...serviceEmployees,
       [serviceId]: employeeId,
     });
+  };
+
+  const handlePhoneChange = async (phone: string) => {
+    setCustomerPhone(phone);
+    
+    if (phone.length >= 5) {
+      const { data } = await supabase
+        .from("visits")
+        .select("customer_name, customer_phone")
+        .eq("customer_phone", phone)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data?.customer_name) {
+        setCustomerName(data.customer_name);
+        toast.success("Customer found! Name auto-filled.");
+      }
+    }
   };
 
   const calculateTotal = () => {
@@ -178,22 +199,26 @@ const Visits = () => {
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="customerName">Customer Name</Label>
-                <Input
-                  id="customerName"
-                  name="customerName"
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="customerPhone">Phone Number (Optional)</Label>
                 <Input
                   id="customerPhone"
                   name="customerPhone"
                   type="tel"
                   placeholder="+1234567890"
+                  value={customerPhone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customerName">Customer Name</Label>
+                <Input
+                  id="customerName"
+                  name="customerName"
+                  placeholder="John Doe"
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                 />
               </div>
             </div>
