@@ -23,6 +23,11 @@ interface Employee {
   full_name: string;
 }
 
+interface CustomerMatch {
+  customer_name: string;
+  customer_phone: string;
+}
+
 const Visits = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -32,6 +37,8 @@ const Visits = () => {
   const [serviceEmployees, setServiceEmployees] = useState<Record<string, string>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [matchingCustomers, setMatchingCustomers] = useState<CustomerMatch[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,22 +86,42 @@ const Visits = () => {
 
   const handlePhoneChange = async (phone: string) => {
     setCustomerPhone(phone);
+    setCustomerName(""); // Clear name when phone changes
     
-    if (phone.length >= 5) {
+    if (phone.length >= 3) {
       const { data } = await supabase
         .from("visits")
         .select("customer_name, customer_phone")
-        .or(`customer_phone.eq.${phone},customer_phone.like.${phone}%`)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .ilike("customer_phone", `%${phone}%`)
+        .order("created_at", { ascending: false });
       
-      if (data?.customer_name) {
-        setCustomerName(data.customer_name);
-        setCustomerPhone(data.customer_phone);
-        toast.success(`Customer found: ${data.customer_name}`);
+      if (data && data.length > 0) {
+        // Remove duplicates by phone number
+        const uniqueCustomers = data.reduce((acc: CustomerMatch[], current) => {
+          const exists = acc.find(item => item.customer_phone === current.customer_phone);
+          if (!exists) {
+            acc.push(current);
+          }
+          return acc;
+        }, []);
+        
+        setMatchingCustomers(uniqueCustomers);
+        setShowDropdown(true);
+      } else {
+        setMatchingCustomers([]);
+        setShowDropdown(false);
       }
+    } else {
+      setMatchingCustomers([]);
+      setShowDropdown(false);
     }
+  };
+
+  const handleCustomerSelect = (customer: CustomerMatch) => {
+    setCustomerPhone(customer.customer_phone);
+    setCustomerName(customer.customer_name);
+    setShowDropdown(false);
+    toast.success(`Selected: ${customer.customer_name}`);
   };
 
   const calculateTotal = () => {
@@ -199,7 +226,7 @@ const Visits = () => {
 
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <Label htmlFor="customerPhone">Phone Number (Optional)</Label>
                 <Input
                   id="customerPhone"
@@ -208,7 +235,29 @@ const Visits = () => {
                   placeholder="+1234567890"
                   value={customerPhone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
+                  onFocus={() => matchingCustomers.length > 0 && setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                  autoComplete="off"
                 />
+                
+                {showDropdown && matchingCustomers.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                    <ul className="py-1">
+                      {matchingCustomers.map((customer, index) => (
+                        <li
+                          key={index}
+                          className="px-4 py-2 hover:bg-accent cursor-pointer transition-colors"
+                          onClick={() => handleCustomerSelect(customer)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-foreground">{customer.customer_name}</span>
+                            <span className="text-sm text-muted-foreground">{customer.customer_phone}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
