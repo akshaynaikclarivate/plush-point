@@ -84,14 +84,15 @@ const Visits = () => {
       const { data } = await supabase
         .from("visits")
         .select("customer_name, customer_phone")
-        .eq("customer_phone", phone)
+        .or(`customer_phone.eq.${phone},customer_phone.like.${phone}%`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       
       if (data?.customer_name) {
         setCustomerName(data.customer_name);
-        toast.success("Customer found! Name auto-filled.");
+        setCustomerPhone(data.customer_phone);
+        toast.success(`Customer found: ${data.customer_name}`);
       }
     }
   };
