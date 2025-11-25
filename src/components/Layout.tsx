@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, Users, Briefcase, FileText, Settings, LogOut, Menu, Scissors, UserPlus } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, FileText, Settings, LogOut, Menu, Scissors, UserPlus, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -58,6 +58,7 @@ export const Layout = ({ children }: LayoutProps) => {
     ...(userRole === "admin" ? [
       { href: "/services", icon: Briefcase, label: "Services" },
       { href: "/employees", icon: Users, label: "Employees" },
+      { href: "/customers", icon: UserCircle, label: "Customers" },
       { href: "/reports", icon: FileText, label: "Reports" },
       { href: "/settings", icon: Settings, label: "Settings" },
     ] : []),

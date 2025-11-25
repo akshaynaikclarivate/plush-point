@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Visits from "./pages/Visits";
 import Services from "./pages/Services";
 import Employees from "./pages/Employees";
+import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -49,6 +50,13 @@ const App = () => (
             <ProtectedRoute requiredRole="admin">
               <Layout>
                 <Employees />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/customers" element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <Customers />
               </Layout>
             </ProtectedRoute>
           } />
