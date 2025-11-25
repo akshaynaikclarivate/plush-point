@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { DollarSign, Users, Briefcase, Clock, CreditCard, RefreshCw, TrendingUp } from "lucide-react";
 
 interface DailySale {
   date: string;
@@ -48,6 +49,7 @@ interface AvgTicketValue {
 
 const Reports = () => {
   const [dateRange, setDateRange] = useState("today");
+  const [selectedReport, setSelectedReport] = useState("sales");
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
   const [employeePerformance, setEmployeePerformance] = useState<EmployeePerformance[]>([]);
   const [servicePerformance, setServicePerformance] = useState<ServicePerformance[]>([]);
@@ -55,6 +57,16 @@ const Reports = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodStats[]>([]);
   const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
   const [avgTicketValues, setAvgTicketValues] = useState<AvgTicketValue[]>([]);
+
+  const reportTypes = [
+    { id: "sales", label: "Daily Sales", icon: DollarSign },
+    { id: "employees", label: "Employees", icon: Users },
+    { id: "services", label: "Services", icon: Briefcase },
+    { id: "peak", label: "Peak Hours", icon: Clock },
+    { id: "payment", label: "Payments", icon: CreditCard },
+    { id: "retention", label: "Retention", icon: RefreshCw },
+    { id: "ticket", label: "Avg Ticket", icon: TrendingUp },
+  ];
 
   const getDateRange = () => {
     const now = new Date();
@@ -285,41 +297,10 @@ const Reports = () => {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground">View salon performance analytics</p>
-        </div>
-
-        <div className="w-48">
-          <Label htmlFor="dateRange">Date Range</Label>
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger id="dateRange">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">Last 7 Days</SelectItem>
-              <SelectItem value="month">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
-          <TabsTrigger value="sales">Daily Sales</TabsTrigger>
-          <TabsTrigger value="employees">Employees</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="peak">Peak Hours</TabsTrigger>
-          <TabsTrigger value="payment">Payments</TabsTrigger>
-          <TabsTrigger value="retention">Retention</TabsTrigger>
-          <TabsTrigger value="ticket">Avg Ticket</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="sales">
+  const renderReportContent = () => {
+    switch (selectedReport) {
+      case "sales":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Daily Sales Report</CardTitle>
@@ -355,9 +336,10 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="employees">
+      case "employees":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Employee Performance</CardTitle>
@@ -393,9 +375,10 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="services">
+      case "services":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Service Performance</CardTitle>
@@ -431,9 +414,10 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="peak">
+      case "peak":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Peak Hours Analysis</CardTitle>
@@ -465,9 +449,10 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="payment">
+      case "payment":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Payment Method Breakdown</CardTitle>
@@ -503,9 +488,10 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="retention">
+      case "retention":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Customer Retention</CardTitle>
@@ -540,9 +526,10 @@ const Reports = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        );
 
-        <TabsContent value="ticket">
+      case "ticket":
+        return (
           <Card>
             <CardHeader>
               <CardTitle>Average Ticket Value</CardTitle>
@@ -576,8 +563,69 @@ const Reports = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <p className="text-muted-foreground">View salon performance analytics</p>
+        </div>
+
+        <div className="w-48">
+          <Label htmlFor="dateRange">Date Range</Label>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger id="dateRange">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Last 7 Days</SelectItem>
+              <SelectItem value="month">Last 30 Days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Left sidebar menu */}
+        <div className="w-64 shrink-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Types</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              <nav className="space-y-1">
+                {reportTypes.map((report) => {
+                  const Icon = report.icon;
+                  return (
+                    <Button
+                      key={report.id}
+                      variant={selectedReport === report.id ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedReport(report.id)}
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      {report.label}
+                    </Button>
+                  );
+                })}
+              </nav>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1">
+          {renderReportContent()}
+        </div>
+      </div>
     </div>
   );
 };
