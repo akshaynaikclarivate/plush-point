@@ -24,11 +24,37 @@ interface ServicePerformance {
   total_revenue: number;
 }
 
+interface PeakHour {
+  hour: string;
+  visits: number;
+}
+
+interface PaymentMethodStats {
+  method: string;
+  count: number;
+  total_amount: number;
+}
+
+interface CustomerRetention {
+  new_customers: number;
+  returning_customers: number;
+  retention_rate: number;
+}
+
+interface AvgTicketValue {
+  date: string;
+  avg_value: number;
+}
+
 const Reports = () => {
   const [dateRange, setDateRange] = useState("today");
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
   const [employeePerformance, setEmployeePerformance] = useState<EmployeePerformance[]>([]);
   const [servicePerformance, setServicePerformance] = useState<ServicePerformance[]>([]);
+  const [peakHours, setPeakHours] = useState<PeakHour[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodStats[]>([]);
+  const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
+  const [avgTicketValues, setAvgTicketValues] = useState<AvgTicketValue[]>([]);
 
   const getDateRange = () => {
     const now = new Date();
@@ -148,6 +174,115 @@ const Reports = () => {
           .sort((a, b) => b.times_used - a.times_used)
       );
     }
+
+    // Fetch peak hours
+    if (visits) {
+      const hourCounts: Record<string, number> = {};
+      visits.forEach((visit) => {
+        const hour = new Date(visit.created_at).getHours();
+        const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+        hourCounts[hourLabel] = (hourCounts[hourLabel] || 0) + 1;
+      });
+
+      setPeakHours(
+        Object.entries(hourCounts)
+          .map(([hour, visits]) => ({ hour, visits }))
+          .sort((a, b) => parseInt(a.hour) - parseInt(b.hour))
+      );
+    }
+
+    // Fetch payment method breakdown
+    const { data: paymentData } = await supabase
+      .from("visits")
+      .select("payment_method, final_amount")
+      .gte("created_at", startDate)
+      .lte("created_at", endDate);
+
+    if (paymentData) {
+      const methodStats: Record<string, { count: number; total: number }> = {};
+      paymentData.forEach((visit) => {
+        const method = visit.payment_method || "Unknown";
+        if (!methodStats[method]) {
+          methodStats[method] = { count: 0, total: 0 };
+        }
+        methodStats[method].count++;
+        methodStats[method].total += Number(visit.final_amount);
+      });
+
+      setPaymentMethods(
+        Object.entries(methodStats)
+          .map(([method, data]) => ({
+            method,
+            count: data.count,
+            total_amount: data.total,
+          }))
+          .sort((a, b) => b.count - a.count)
+      );
+    }
+
+    // Fetch customer retention
+    const { data: allVisits } = await supabase
+      .from("visits")
+      .select("customer_phone, created_at")
+      .not("customer_phone", "is", null)
+      .gte("created_at", startDate)
+      .lte("created_at", endDate);
+
+    if (allVisits) {
+      const customerFirstVisit = new Map<string, string>();
+      
+      allVisits.forEach((visit) => {
+        if (!customerFirstVisit.has(visit.customer_phone)) {
+          customerFirstVisit.set(visit.customer_phone, visit.created_at);
+        } else {
+          const firstVisit = customerFirstVisit.get(visit.customer_phone)!;
+          if (new Date(visit.created_at) < new Date(firstVisit)) {
+            customerFirstVisit.set(visit.customer_phone, visit.created_at);
+          }
+        }
+      });
+
+      let newCustomers = 0;
+      let returningCustomers = 0;
+
+      customerFirstVisit.forEach((firstVisit, phone) => {
+        const isNewInPeriod = new Date(firstVisit) >= new Date(startDate);
+        if (isNewInPeriod) {
+          newCustomers++;
+        } else {
+          returningCustomers++;
+        }
+      });
+
+      const totalCustomers = newCustomers + returningCustomers;
+      const retentionRate = totalCustomers > 0 ? (returningCustomers / totalCustomers) * 100 : 0;
+
+      setCustomerRetention({
+        new_customers: newCustomers,
+        returning_customers: returningCustomers,
+        retention_rate: retentionRate,
+      });
+    }
+
+    // Fetch average ticket value
+    if (visits) {
+      const dailyTickets: Record<string, { total: number; count: number }> = {};
+      visits.forEach((visit) => {
+        const date = new Date(visit.created_at).toLocaleDateString();
+        if (!dailyTickets[date]) {
+          dailyTickets[date] = { total: 0, count: 0 };
+        }
+        dailyTickets[date].total += Number(visit.final_amount);
+        dailyTickets[date].count++;
+      });
+
+      setAvgTicketValues(
+        Object.entries(dailyTickets).map(([date, data]) => ({
+          date,
+          avg_value: data.total / data.count,
+        }))
+      );
+    }
   };
 
   return (
@@ -174,10 +309,14 @@ const Reports = () => {
       </div>
 
       <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
           <TabsTrigger value="sales">Daily Sales</TabsTrigger>
-          <TabsTrigger value="employees">Employee Performance</TabsTrigger>
-          <TabsTrigger value="services">Service Performance</TabsTrigger>
+          <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
+          <TabsTrigger value="peak">Peak Hours</TabsTrigger>
+          <TabsTrigger value="payment">Payments</TabsTrigger>
+          <TabsTrigger value="retention">Retention</TabsTrigger>
+          <TabsTrigger value="ticket">Avg Ticket</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales">
@@ -285,6 +424,151 @@ const Reports = () => {
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No service data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="peak">
+          <Card>
+            <CardHeader>
+              <CardTitle>Peak Hours Analysis</CardTitle>
+              <CardDescription>Busiest hours of the day</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Hour</TableHead>
+                    <TableHead className="text-right">Number of Visits</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {peakHours.map((hour) => (
+                    <TableRow key={hour.hour}>
+                      <TableCell className="font-medium">{hour.hour}</TableCell>
+                      <TableCell className="text-right">{hour.visits}</TableCell>
+                    </TableRow>
+                  ))}
+                  {peakHours.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method Breakdown</CardTitle>
+              <CardDescription>Payment preferences and totals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead className="text-right">Transactions</TableHead>
+                    <TableHead className="text-right">Total Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentMethods.map((method) => (
+                    <TableRow key={method.method}>
+                      <TableCell className="font-medium capitalize">{method.method}</TableCell>
+                      <TableCell className="text-right">{method.count}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        ${method.total_amount.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {paymentMethods.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        No payment data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="retention">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Retention</CardTitle>
+              <CardDescription>New vs returning customers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {customerRetention ? (
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardDescription>New Customers</CardDescription>
+                        <CardTitle className="text-3xl">{customerRetention.new_customers}</CardTitle>
+                      </CardHeader>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardDescription>Returning Customers</CardDescription>
+                        <CardTitle className="text-3xl">{customerRetention.returning_customers}</CardTitle>
+                      </CardHeader>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardDescription>Retention Rate</CardDescription>
+                        <CardTitle className="text-3xl">{customerRetention.retention_rate.toFixed(1)}%</CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No retention data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ticket">
+          <Card>
+            <CardHeader>
+              <CardTitle>Average Ticket Value</CardTitle>
+              <CardDescription>Average spend per visit over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Average Ticket Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {avgTicketValues.map((ticket) => (
+                    <TableRow key={ticket.date}>
+                      <TableCell className="font-medium">{ticket.date}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        ${ticket.avg_value.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {avgTicketValues.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        No data available
                       </TableCell>
                     </TableRow>
                   )}
