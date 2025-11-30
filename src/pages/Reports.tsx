@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
+import { useParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { DollarSign, Users, Briefcase, Clock, CreditCard, RefreshCw, TrendingUp } from "lucide-react";
 
 interface DailySale {
   date: string;
@@ -48,8 +47,8 @@ interface AvgTicketValue {
 }
 
 const Reports = () => {
+  const { reportType } = useParams();
   const [dateRange, setDateRange] = useState("today");
-  const [selectedReport, setSelectedReport] = useState("sales");
   const [dailySales, setDailySales] = useState<DailySale[]>([]);
   const [employeePerformance, setEmployeePerformance] = useState<EmployeePerformance[]>([]);
   const [servicePerformance, setServicePerformance] = useState<ServicePerformance[]>([]);
@@ -58,15 +57,11 @@ const Reports = () => {
   const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
   const [avgTicketValues, setAvgTicketValues] = useState<AvgTicketValue[]>([]);
 
-  const reportTypes = [
-    { id: "sales", label: "Daily Sales", icon: DollarSign },
-    { id: "employees", label: "Employees", icon: Users },
-    { id: "services", label: "Services", icon: Briefcase },
-    { id: "peak", label: "Peak Hours", icon: Clock },
-    { id: "payment", label: "Payments", icon: CreditCard },
-    { id: "retention", label: "Retention", icon: RefreshCw },
-    { id: "ticket", label: "Avg Ticket", icon: TrendingUp },
-  ];
+  const validReportTypes = ["sales", "employees", "services", "peak", "payment", "retention", "ticket"];
+  
+  if (!reportType || !validReportTypes.includes(reportType)) {
+    return <Navigate to="/reports/sales" replace />;
+  }
 
   const getDateRange = () => {
     const now = new Date();
@@ -298,7 +293,7 @@ const Reports = () => {
   };
 
   const renderReportContent = () => {
-    switch (selectedReport) {
+    switch (reportType) {
       case "sales":
         return (
           <Card>
@@ -593,39 +588,7 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="flex gap-6">
-        {/* Left sidebar menu */}
-        <div className="w-64 shrink-0">
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Types</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              <nav className="space-y-1">
-                {reportTypes.map((report) => {
-                  const Icon = report.icon;
-                  return (
-                    <Button
-                      key={report.id}
-                      variant={selectedReport === report.id ? "secondary" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedReport(report.id)}
-                    >
-                      <Icon className="mr-2 h-4 w-4" />
-                      {report.label}
-                    </Button>
-                  );
-                })}
-              </nav>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main content area */}
-        <div className="flex-1">
-          {renderReportContent()}
-        </div>
-      </div>
+      {renderReportContent()}
     </div>
   );
 };
