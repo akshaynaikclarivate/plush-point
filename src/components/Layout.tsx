@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, Users, Briefcase, FileText, Settings, LogOut, Menu, Scissors, UserPlus, UserCircle } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, FileText, Settings, LogOut, Menu, Scissors, UserPlus, UserCircle, ChevronDown, DollarSign, Clock, CreditCard, RefreshCw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -25,6 +25,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -59,34 +60,88 @@ export const Layout = ({ children }: LayoutProps) => {
       { href: "/services", icon: Briefcase, label: "Services" },
       { href: "/employees", icon: Users, label: "Employees" },
       { href: "/customers", icon: UserCircle, label: "Customers" },
-      { href: "/reports", icon: FileText, label: "Reports" },
       { href: "/settings", icon: Settings, label: "Settings" },
     ] : []),
   ];
 
-  const NavLinks = () => (
-    <>
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = location.pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            to={item.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </>
-  );
+  const reportItems = [
+    { href: "/reports/sales", icon: DollarSign, label: "Daily Sales" },
+    { href: "/reports/employees", icon: Users, label: "Employees" },
+    { href: "/reports/services", icon: Briefcase, label: "Services" },
+    { href: "/reports/peak", icon: Clock, label: "Peak Hours" },
+    { href: "/reports/payment", icon: CreditCard, label: "Payments" },
+    { href: "/reports/retention", icon: RefreshCw, label: "Retention" },
+    { href: "/reports/ticket", icon: TrendingUp, label: "Avg Ticket" },
+  ];
+
+  const NavLinks = () => {
+    const isReportRoute = location.pathname.startsWith("/reports");
+    
+    return (
+      <>
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+        
+        {userRole === "admin" && (
+          <div className="space-y-1">
+            <button
+              onClick={() => setReportsOpen(!reportsOpen)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isReportRoute
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              Reports
+              <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${reportsOpen ? "rotate-180" : ""}`} />
+            </button>
+            
+            {reportsOpen && (
+              <div className="ml-4 space-y-1 border-l pl-3">
+                {reportItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-background">

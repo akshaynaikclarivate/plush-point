@@ -60,7 +60,7 @@ const App = () => (
               </Layout>
             </ProtectedRoute>
           } />
-          <Route path="/reports" element={
+          <Route path="/reports/:reportType" element={
             <ProtectedRoute requiredRole="admin">
               <Layout>
                 <Reports />
