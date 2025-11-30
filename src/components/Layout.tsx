@@ -65,6 +65,7 @@ export const Layout = ({ children }: LayoutProps) => {
   ];
 
   const reportItems = [
+    { href: "/reports/overview", icon: TrendingUp, label: "Overview" },
     { href: "/reports/sales", icon: DollarSign, label: "Daily Sales" },
     { href: "/reports/employees", icon: Users, label: "Employees" },
     { href: "/reports/services", icon: Briefcase, label: "Services" },
@@ -72,6 +73,8 @@ export const Layout = ({ children }: LayoutProps) => {
     { href: "/reports/payment", icon: CreditCard, label: "Payments" },
     { href: "/reports/retention", icon: RefreshCw, label: "Retention" },
     { href: "/reports/ticket", icon: TrendingUp, label: "Avg Ticket" },
+    { href: "/reports/discount", icon: DollarSign, label: "Discounts" },
+    { href: "/reports/customer-history", icon: Users, label: "Customer History" },
   ];
 
   const NavLinks = () => {

@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { OverviewDashboard } from "./reports/OverviewDashboard";
+import { DiscountReport } from "./reports/DiscountReport";
+import { CustomerVisitHistoryReport } from "./reports/CustomerVisitHistoryReport";
 
 interface DailySale {
   date: string;
@@ -57,10 +60,10 @@ const Reports = () => {
   const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
   const [avgTicketValues, setAvgTicketValues] = useState<AvgTicketValue[]>([]);
 
-  const validReportTypes = ["sales", "employees", "services", "peak", "payment", "retention", "ticket"];
+  const validReportTypes = ["overview", "sales", "employees", "services", "peak", "payment", "retention", "ticket", "discount", "customer-history"];
   
   if (!reportType || !validReportTypes.includes(reportType)) {
-    return <Navigate to="/reports/sales" replace />;
+    return <Navigate to="/reports/overview" replace />;
   }
 
   const getDateRange = () => {
@@ -294,6 +297,15 @@ const Reports = () => {
 
   const renderReportContent = () => {
     switch (reportType) {
+      case "overview":
+        return <OverviewDashboard />;
+
+      case "discount":
+        return <DiscountReport dateRange={getDateRange()} />;
+
+      case "customer-history":
+        return <CustomerVisitHistoryReport />;
+
       case "sales":
         return (
           <Card>
