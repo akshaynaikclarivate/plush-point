@@ -577,6 +577,9 @@ const Reports = () => {
     }
   };
 
+  const reportsWithoutDateRange = ["overview", "customer-history"];
+  const showDateRange = !reportsWithoutDateRange.includes(reportType);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -585,19 +588,21 @@ const Reports = () => {
           <p className="text-muted-foreground">View salon performance analytics</p>
         </div>
 
-        <div className="w-48">
-          <Label htmlFor="dateRange">Date Range</Label>
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger id="dateRange">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">Last 7 Days</SelectItem>
-              <SelectItem value="month">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {showDateRange && (
+          <div className="w-48">
+            <Label htmlFor="dateRange">Date Range</Label>
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger id="dateRange">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">Last 7 Days</SelectItem>
+                <SelectItem value="month">Last 30 Days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {renderReportContent()}
