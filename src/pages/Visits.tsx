@@ -247,7 +247,10 @@ const Visits = () => {
                         <li
                           key={index}
                           className="px-4 py-2 hover:bg-accent cursor-pointer transition-colors"
-                          onClick={() => handleCustomerSelect(customer)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleCustomerSelect(customer);
+                          }}
                         >
                           <div className="flex justify-between items-center">
                             <span className="font-medium text-foreground">{customer.customer_name}</span>
